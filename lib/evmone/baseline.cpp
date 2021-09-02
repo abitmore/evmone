@@ -79,39 +79,42 @@ inline evmc_status_code check_requirements(
     DISPATCH()
 
 template <typename InstrFn>
-evmc_status_code invoke(InstrFn instr_fn, ExecutionState& state) noexcept = delete;
+bool invoke(InstrFn instr_fn, ExecutionState& state) noexcept = delete;
 
 template <>
-[[gnu::always_inline]] inline evmc_status_code invoke<decltype(&add)>(
+[[gnu::always_inline]] inline bool invoke<decltype(&add)>(
     decltype(&add) instr_fn, ExecutionState& state) noexcept
 {
     instr_fn(state);
-    return EVMC_SUCCESS;
+    return false;
 }
 
 template <>
-[[gnu::always_inline]] inline evmc_status_code invoke<decltype(&exp)>(
+[[gnu::always_inline]] inline bool invoke<decltype(&exp)>(
     decltype(&exp) instr_fn, ExecutionState& state) noexcept
 {
     const auto status = instr_fn(state);
     if (status != EVMC_SUCCESS)
+    {
         state.status = status;
-    return status;
+        return true;
+    }
+    return false;
 }
 
 template <>
-[[gnu::always_inline]] inline evmc_status_code invoke<decltype(&stop)>(
+[[gnu::always_inline]] inline bool invoke<decltype(&stop)>(
     decltype(&stop) instr_fn, ExecutionState& state) noexcept
 {
     const auto token = instr_fn(state);
     state.status = token.status;
-    return EVMC_FAILURE;  // Terminate loop with any code other than SUCCESS.
+    return true;
 }
 
-#define INSTR_IMPL(OPCODE)                                \
-    case OPCODE:                                          \
-        if (invoke(op2fn::OPCODE, state) != EVMC_SUCCESS) \
-            goto exit;                                    \
+#define INSTR_IMPL(OPCODE)                \
+    case OPCODE:                          \
+        if (invoke(op2fn::OPCODE, state)) \
+            goto exit;                    \
         DISPATCH_NEXT()
 
 template <bool TracingEnabled>
