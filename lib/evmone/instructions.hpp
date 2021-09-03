@@ -690,9 +690,16 @@ inline InstrResult resolve_jump_destination(
 }
 
 /// JUMP instruction implementation using baseline::CodeAnalysis.
-inline InstrResult jump(ExecutionState& state, size_t /*pc*/) noexcept
+inline code_iterator jump(ExecutionState& state, code_iterator /*pc*/) noexcept
 {
-    return resolve_jump_destination(*state.analysis.baseline, state.stack.pop());
+    const auto [status, offset] =
+        resolve_jump_destination(*state.analysis.baseline, state.stack.pop());
+    if (status != EVMC_SUCCESS)
+    {
+        state.status = status;
+        return nullptr;
+    }
+    return state.code.data() + offset;
 }
 
 /// JUMPI instruction implementation using baseline::CodeAnalysis.
