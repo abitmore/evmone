@@ -389,20 +389,7 @@ evmc_result execute(const VM& vm, ExecutionState& state, const CodeAnalysis& ana
         }
 
             INSTR_IMPL(OP_JUMP);
-
-            case OP_JUMPI:
-            {
-                const auto r = jumpi(state, static_cast<size_t>(code_it - code));
-                if (r.status != EVMC_SUCCESS)
-                {
-                    state.status = r.status;
-                    goto exit;
-                }
-                code_it = code + r.pc;
-                DISPATCH();
-            }
-
-
+            INSTR_IMPL(OP_JUMPI);
             INSTR_IMPL(OP_PC);
 
         case OP_MSIZE:

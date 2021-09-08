@@ -692,8 +692,9 @@ inline InstrResult resolve_jump_destination(
 /// JUMP instruction implementation using baseline::CodeAnalysis.
 inline code_iterator jump(ExecutionState& state, code_iterator /*pc*/) noexcept
 {
-    const auto& jumpdest_map = state.analysis.baseline->jumpdest_map;
     const auto dst = state.stack.pop();
+
+    const auto& jumpdest_map = state.analysis.baseline->jumpdest_map;
     if (dst >= jumpdest_map.size() || !jumpdest_map[static_cast<size_t>(dst)])
     {
         state.status = EVMC_BAD_JUMP_DESTINATION;
@@ -704,14 +705,22 @@ inline code_iterator jump(ExecutionState& state, code_iterator /*pc*/) noexcept
 }
 
 /// JUMPI instruction implementation using baseline::CodeAnalysis.
-inline InstrResult jumpi(ExecutionState& state, size_t pc) noexcept
+inline code_iterator jumpi(ExecutionState& state, code_iterator pc) noexcept
 {
     const auto dst = state.stack.pop();
     const auto cond = state.stack.pop();
     if (cond)
-        return resolve_jump_destination(*state.analysis.baseline, dst);
+    {
+        const auto& jumpdest_map = state.analysis.baseline->jumpdest_map;
+        if (dst >= jumpdest_map.size() || !jumpdest_map[static_cast<size_t>(dst)])
+        {
+            state.status = EVMC_BAD_JUMP_DESTINATION;
+            return nullptr;
+        }
+        return state.code.data() + static_cast<size_t>(dst);
+    }
     else
-        return {EVMC_SUCCESS, pc + 1};
+        return pc + 1;
 }
 
 inline code_iterator pc(ExecutionState& state, code_iterator pos) noexcept
